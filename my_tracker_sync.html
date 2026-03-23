@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>My Daily Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#f5f3ee;--surface:#fff;--surface2:#eeebe3;
+  --border:rgba(0,0,0,0.09);--border2:rgba(0,0,0,0.16);
+  --text:#1c1c18;--text2:#6a6a62;--text3:#a9a9a0;
+  --green:#639922;--green-l:#c0dd97;--green-d:#3b6d11;
+  --amber:#EF9F27;--red:#E24B4A;--blue:#378ADD;
+  --r:12px;--rs:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* SETUP SCREEN */
+.setup-overlay{position:fixed;inset:0;background:var(--bg);z-index:999;display:flex;align-items:center;justify-content:center;padding:1.5rem;}
+.setup-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:2rem;max-width:480px;width:100%;}
+.setup-title{font-family:'DM Serif Display',serif;font-size:26px;margin-bottom:6px;}
+.setup-sub{font-size:14px;color:var(--text2);margin-bottom:1.5rem;line-height:1.6;}
+.setup-step{display:flex;gap:12px;margin-bottom:1.2rem;align-items:flex-start;}
+.step-num{width:24px;height:24px;border-radius:50%;background:var(--text);color:var(--surface);font-size:12px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+.step-body{flex:1;}
+.step-label{font-size:13px;font-weight:500;margin-bottom:4px;}
+.step-desc{font-size:12px;color:var(--text2);margin-bottom:6px;line-height:1.5;}
+.step-link{font-size:12px;color:var(--blue);text-decoration:none;}
+.step-link:hover{text-decoration:underline;}
+input.setup-input{width:100%;padding:9px 11px;border:1px solid var(--border2);border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:13px;background:var(--surface);color:var(--text);outline:none;margin-top:4px;}
+input.setup-input:focus{border-color:var(--green);}
+.setup-btn{width:100%;padding:11px;background:var(--text);color:var(--surface);border:none;border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;margin-top:1rem;}
+.setup-btn:hover{opacity:.85;}
+.setup-err{font-size:12px;color:var(--red);margin-top:8px;display:none;}
+
+/* NAV */
+nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 1.5rem;display:flex;align-items:center;position:sticky;top:0;z-index:50;}
+.brand{font-family:'DM Serif Display',serif;font-size:19px;padding:14px 16px 14px 0;border-right:1px solid var(--border);margin-right:8px;white-space:nowrap;}
+.tab{padding:14px 12px;cursor:pointer;font-size:13px;color:var(--text2);border-bottom:2px solid transparent;transition:.15s;white-space:nowrap;}
+.tab.on{color:var(--text);border-bottom-color:var(--green);font-weight:500;}
+.tab:hover{color:var(--text);}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:var(--text3);flex-shrink:0;}
+.sync-dot.synced{background:var(--green);}
+.sync-dot.syncing{background:var(--amber);animation:pulse 1s infinite;}
+.sync-dot.error{background:var(--red);}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+.sync-lbl{font-size:11px;color:var(--text3);}
+.nav-date{font-size:12px;color:var(--text3);}
+
+/* LAYOUT */
+.page{display:none;padding:1.5rem;max-width:680px;margin:0 auto;}
+.page.on{display:block;}
+.sl{font-size:11px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);margin-bottom:8px;}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:1.5rem;}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:11px 13px;}
+.sn{font-family:'DM Serif Display',serif;font-size:24px;}
+.sl2{font-size:11px;color:var(--text3);margin-top:1px;}
+
+/* CARD */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:15px 17px;margin-bottom:10px;}
+
+/* INPUTS */
+input[type=text],input[type=time],select{
+  padding:9px 11px;border:1px solid var(--border2);border-radius:var(--rs);
+  font-family:'DM Sans',sans-serif;font-size:14px;background:var(--surface);
+  color:var(--text);outline:none;width:100%;
+}
+input[type=text]:focus,select:focus{border-color:var(--green);}
+.btn{padding:0 18px;height:38px;border:1px solid var(--border2);border-radius:var(--rs);font-family:'DM Sans',sans-serif;font-size:14px;cursor:pointer;background:var(--surface);color:var(--text);}
+.btn:hover{background:var(--surface2);}
+.btn-primary{background:var(--text);color:var(--surface);border-color:var(--text);}
+.btn-primary:hover{opacity:.85;}
+.row{display:flex;gap:8px;align-items:center;margin-bottom:8px;}
+
+/* SCORES */
+.scores{display:flex;gap:5px;margin-bottom:8px;}
+.sc{flex:1;padding:7px 2px;text-align:center;border:1px solid var(--border);border-radius:var(--rs);cursor:pointer;font-size:11px;font-weight:500;color:var(--text2);background:var(--surface2);transition:.1s;}
+.sc:hover{border-color:var(--border2);}
+.sc.s1.on{background:#E24B4A;border-color:#E24B4A;color:#fff;}
+.sc.s2.on{background:#EF9F27;border-color:#EF9F27;color:#fff;}
+.sc.s3.on{background:#FAC775;border-color:#FAC775;color:#5a3800;}
+.sc.s4.on{background:#97C459;border-color:#97C459;color:#173404;}
+.sc.s5.on{background:#639922;border-color:#639922;color:#fff;}
+
+/* ENTRIES */
+.entry{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);margin-bottom:6px;}
+.edot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.ename{flex:1;font-size:14px;}
+.ecat{font-size:11px;color:var(--text3);background:var(--surface2);padding:2px 7px;border-radius:20px;white-space:nowrap;}
+.etime{font-size:12px;color:var(--text3);white-space:nowrap;}
+.edel{border:none;background:none;color:var(--text3);cursor:pointer;font-size:18px;line-height:1;padding:0 2px;}
+.edel:hover{color:var(--red);}
+
+/* HEATMAP */
+.hm-wrap{overflow-x:auto;padding-bottom:4px;}
+.hm-outer{display:flex;gap:0;}
+.hm-daylabels{display:flex;flex-direction:column;gap:2px;margin-right:4px;padding-top:16px;}
+.hm-dl{font-size:10px;color:var(--text3);height:12px;line-height:12px;}
+.hm-cols{display:flex;gap:2px;}
+.hm-col{display:flex;flex-direction:column;gap:2px;}
+.hm-ml{font-size:10px;color:var(--text3);height:14px;line-height:14px;margin-bottom:2px;}
+.hm-cell{width:12px;height:12px;border-radius:2px;border:0.5px solid rgba(0,0,0,0.06);}
+.hm-cell:hover{outline:1.5px solid var(--border2);outline-offset:1px;}
+.legend{display:flex;align-items:center;gap:5px;margin-top:8px;flex-wrap:wrap;}
+.leg-lbl{font-size:11px;color:var(--text3);}
+.leg-cell{width:12px;height:12px;border-radius:2px;border:0.5px solid rgba(0,0,0,0.08);}
+
+/* CATEGORY */
+.cat-list{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
+.cat-tag{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;background:var(--surface2);font-size:13px;border:1px solid var(--border);}
+.cat-del{border:none;background:none;cursor:pointer;color:var(--text3);font-size:14px;line-height:1;}
+.cat-del:hover{color:var(--red);}
+
+/* MONTHLY */
+.monthly{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:1.5rem;}
+.month-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px;}
+.mc-name{font-size:12px;color:var(--text2);margin-bottom:4px;}
+.mc-bar-bg{height:5px;background:var(--surface2);border-radius:3px;overflow:hidden;}
+.mc-bar{height:5px;border-radius:3px;}
+.mc-num{font-size:11px;color:var(--text3);margin-top:4px;}
+
+.empty{font-size:13px;color:var(--text3);padding:12px 0;}
+#tip{position:fixed;background:var(--surface);border:1px solid var(--border2);border-radius:var(--rs);padding:7px 10px;font-size:12px;color:var(--text);pointer-events:none;z-index:200;display:none;line-height:1.5;box-shadow:0 2px 8px rgba(0,0,0,.1);}
+
+@media(max-width:480px){
+  .stats{grid-template-columns:repeat(2,1fr);}
+  .monthly{grid-template-columns:repeat(2,1fr);}
+  .scores{flex-wrap:wrap;}
+  .sc{min-width:calc(33% - 4px);}
+}
+</style>
+</head>
+<body>
+
+<!-- SETUP SCREEN -->
+<div class="setup-overlay" id="setupOverlay">
+  <div class="setup-box">
+    <div class="setup-title">Setup — one time only</div>
+    <div class="setup-sub">Your data will sync across all your devices automatically. Follow these 3 steps once, then forget about it.</div>
+
+    <div class="setup-step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <div class="step-label">Create a free JSONBin account</div>
+        <div class="step-desc">Go to jsonbin.io, sign up free. No credit card needed.</div>
+        <a class="step-link" href="https://jsonbin.io" target="_blank">Open jsonbin.io →</a>
+      </div>
+    </div>
+
+    <div class="setup-step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <div class="step-label">Copy your Master Key</div>
+        <div class="step-desc">After login → click your profile icon → API Keys → copy the Master Key.</div>
+        <input class="setup-input" type="text" id="setupKey" placeholder="Paste your Master Key here ( $2b$10$... )" />
+      </div>
+    </div>
+
+    <div class="setup-step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <div class="step-label">Click Connect — we do the rest</div>
+        <div class="step-desc">We create a storage bin for you automatically and save the ID in this browser.</div>
+      </div>
+    </div>
+
+    <div id="setupErr" class="setup-err"></div>
+    <button class="setup-btn" onclick="setupConnect()" id="setupBtn">Connect &amp; Start</button>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<nav>
+  <div class="brand">Daily Tracker</div>
+  <div class="tab on" onclick="showPage('log')">Log</div>
+  <div class="tab" onclick="showPage('today')">Today</div>
+  <div class="tab" onclick="showPage('year')">Year</div>
+  <div class="tab" onclick="showPage('settings')">Settings</div>
+  <div class="nav-right">
+    <div class="sync-dot" id="syncDot"></div>
+    <div class="sync-lbl" id="syncLbl">—</div>
+    <div class="nav-date" id="navDate"></div>
+  </div>
+</nav>
+
+<!-- LOG -->
+<div class="page on" id="page-log">
+  <div class="stats" id="statsRow"></div>
+  <div class="sl">Quick log</div>
+  <div class="card">
+    <div class="row">
+      <input type="text" id="entryText" placeholder="What are you logging? e.g. oats with berries, 30 min walk…" />
+      <input type="time" id="entryTime" style="width:100px;flex-shrink:0;"/>
+    </div>
+    <div class="row">
+      <select id="entryCat" style="flex:1;"></select>
+    </div>
+    <div class="sl" style="margin-top:4px;">Rate it</div>
+    <div class="scores" id="scoreRow">
+      <div class="sc s1" onclick="pickScore(1)">1 · Poor</div>
+      <div class="sc s2" onclick="pickScore(2)">2 · Okay</div>
+      <div class="sc s3" onclick="pickScore(3)">3 · Average</div>
+      <div class="sc s4" onclick="pickScore(4)">4 · Good</div>
+      <div class="sc s5" onclick="pickScore(5)">5 · Great</div>
+    </div>
+    <button class="btn btn-primary" onclick="addEntry()" style="width:100%;">+ Log entry</button>
+  </div>
+  <div class="sl" style="margin-top:1.5rem;">Year heatmap</div>
+  <div class="card">
+    <div class="hm-wrap">
+      <div class="hm-outer">
+        <div class="hm-daylabels" id="hmDays"></div>
+        <div><div id="hmCols" class="hm-cols"></div></div>
+      </div>
+    </div>
+    <div class="legend">
+      <span class="leg-lbl">Low</span>
+      <div class="leg-cell" style="background:#F09595;"></div>
+      <div class="leg-cell" style="background:#FAC775;"></div>
+      <div class="leg-cell" style="background:#C0DD97;"></div>
+      <div class="leg-cell" style="background:#639922;"></div>
+      <span class="leg-lbl">High</span>
+      <div class="leg-cell" style="background:var(--surface2);margin-left:8px;"></div>
+      <span class="leg-lbl">No entries</span>
+    </div>
+  </div>
+</div>
+
+<!-- TODAY -->
+<div class="page" id="page-today">
+  <div class="sl" id="todayHeading"></div>
+  <div id="todayList"></div>
+</div>
+
+<!-- YEAR -->
+<div class="page" id="page-year">
+  <div class="stats" id="yearStats"></div>
+  <div class="sl">Monthly overview</div>
+  <div class="monthly" id="monthlyGrid"></div>
+  <div class="sl">Category breakdown</div>
+  <div id="catBreakdown"></div>
+</div>
+
+<!-- SETTINGS -->
+<div class="page" id="page-settings">
+  <div class="sl">Categories</div>
+  <div class="card" style="margin-bottom:1rem;">
+    <div class="cat-list" id="catList"></div>
+    <div class="row">
+      <input type="text" id="catInput" placeholder="New category name…" onkeydown="if(event.key==='Enter')addCat()"/>
+      <button class="btn" onclick="addCat()">Add</button>
+    </div>
+  </div>
+  <div class="sl">Sync</div>
+  <div class="card" style="margin-bottom:1rem;">
+    <div style="font-size:13px;color:var(--text2);margin-bottom:12px;line-height:1.6;">
+      Data syncs automatically across all your devices.<br>
+      Your API key and Bin ID are stored locally in this browser only.
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn" onclick="forcSync()">Sync now</button>
+      <button class="btn" onclick="resetSetup()" style="color:var(--red);border-color:var(--red);">Reset connection</button>
+    </div>
+  </div>
+  <div class="sl">Data</div>
+  <div class="card">
+    <div style="font-size:13px;color:var(--text2);margin-bottom:12px;">Export a local JSON backup of all your data.</div>
+    <button class="btn" onclick="exportData()">Export JSON backup</button>
+  </div>
+</div>
+
+<div id="tip"></div>
+
+<script>
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MONTHS_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const BIN_URL = 'https://api.jsonbin.io/v3/b';
+
+let entries = [];
+let categories = ['Food','Exercise','Mood','Sleep','Work','Other'];
+let selScore = 0;
+let masterKey = '';
+let binId = '';
+let syncTimer = null;
+let pendingSync = false;
+
+// ── SETUP ──────────────────────────────────────────────────────────
+function checkSetup() {
+  masterKey = localStorage.getItem('tb_key') || '';
+  binId     = localStorage.getItem('tb_bin') || '';
+  if (masterKey && binId) {
+    document.getElementById('setupOverlay').style.display = 'none';
+    initApp();
+  }
+}
+
+async function setupConnect() {
+  const key = document.getElementById('setupKey').value.trim();
+  if (!key) { showErr('Please paste your Master Key first.'); return; }
+  const btn = document.getElementById('setupBtn');
+  btn.textContent = 'Connecting…'; btn.disabled = true;
+  try {
+    const res = await fetch(BIN_URL, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','X-Master-Key':key,'X-Bin-Name':'DailyTracker'},
+      body: JSON.stringify({entries:[], categories:['Food','Exercise','Mood','Sleep','Work','Other']})
+    });
+    if (!res.ok) throw new Error('Bad key or network issue ('+res.status+')');
+    const data = await res.json();
+    masterKey = key;
+    binId = data.metadata.id;
+    localStorage.setItem('tb_key', masterKey);
+    localStorage.setItem('tb_bin', binId);
+    document.getElementById('setupOverlay').style.display = 'none';
+    initApp();
+  } catch(e) {
+    showErr('Could not connect: ' + e.message);
+    btn.textContent = 'Connect & Start'; btn.disabled = false;
+  }
+}
+
+function showErr(msg) {
+  const el = document.getElementById('setupErr');
+  el.textContent = msg; el.style.display = 'block';
+}
+
+function resetSetup() {
+  if (!confirm('This will disconnect sync. Your data on JSONBin is safe. Continue?')) return;
+  localStorage.removeItem('tb_key');
+  localStorage.removeItem('tb_bin');
+  location.reload();
+}
+
+// ── SYNC ───────────────────────────────────────────────────────────
+function setSyncStatus(state) {
+  const dot = document.getElementById('syncDot');
+  const lbl = document.getElementById('syncLbl');
+  dot.className = 'sync-dot ' + state;
+  const labels = {syncing:'Syncing…', synced:'Synced', error:'Sync error', offline:'Offline'};
+  lbl.textContent = labels[state] || '';
+}
+
+async function syncFromCloud() {
+  setSyncStatus('syncing');
+  try {
+    const res = await fetch(BIN_URL+'/'+binId+'/latest', {
+      headers:{'X-Master-Key':masterKey}
+    });
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+    entries    = data.record.entries    || [];
+    categories = data.record.categories || ['Food','Exercise','Mood','Sleep','Work','Other'];
+    setSyncStatus('synced');
+    renderAll();
+  } catch(e) {
+    setSyncStatus('error');
+  }
+}
+
+async function syncToCloud() {
+  setSyncStatus('syncing');
+  try {
+    const res = await fetch(BIN_URL+'/'+binId, {
+      method:'PUT',
+      headers:{'Content-Type':'application/json','X-Master-Key':masterKey},
+      body: JSON.stringify({entries, categories})
+    });
+    if (!res.ok) throw new Error();
+    setSyncStatus('synced');
+  } catch(e) {
+    setSyncStatus('error');
+  }
+}
+
+function scheduleSave() {
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(syncToCloud, 1200);
+}
+
+async function forcSync() {
+  await syncFromCloud();
+}
+
+// ── INIT ───────────────────────────────────────────────────────────
+async function initApp() {
+  document.getElementById('navDate').textContent =
+    new Date().toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
+  document.getElementById('entryTime').value = nowTime();
+  await syncFromCloud();
+  // Re-sync every 60s in case another device made changes
+  setInterval(syncFromCloud, 60000);
+}
+
+// ── HELPERS ────────────────────────────────────────────────────────
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function nowTime(){
+  const n=new Date();
+  return String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
+}
+function scoreColor(s){
+  if(!s) return 'var(--surface2)';
+  if(s<1.5) return '#F09595';
+  if(s<2.5) return '#FAC775';
+  if(s<3.5) return '#C0DD97';
+  if(s<4.5) return '#97C459';
+  return '#639922';
+}
+function dotColor(s){ return ['','#E24B4A','#EF9F27','#FAC775','#97C459','#639922'][s]||'#ccc'; }
+function getDayScore(ds){
+  const d=entries.filter(e=>e.date===ds);
+  if(!d.length) return null;
+  return d.reduce((s,e)=>s+e.score,0)/d.length;
+}
+
+// ── ACTIONS ────────────────────────────────────────────────────────
+function pickScore(n){
+  selScore=n;
+  document.querySelectorAll('.sc').forEach((el,i)=>{
+    el.className='sc s'+(i+1)+(i+1===n?' on':'');
+  });
+}
+
+function addEntry(){
+  const text=document.getElementById('entryText').value.trim();
+  const time=document.getElementById('entryTime').value||nowTime();
+  const cat=document.getElementById('entryCat').value;
+  if(!text||!selScore){ alert('Please write what you logged and pick a score.'); return; }
+  entries.push({id:Date.now(),date:todayStr(),time,text,cat,score:selScore});
+  document.getElementById('entryText').value='';
+  selScore=0;
+  document.querySelectorAll('.sc').forEach((el,i)=>{ el.className='sc s'+(i+1); });
+  scheduleSave();
+  renderAll();
+}
+
+function deleteEntry(id){
+  entries=entries.filter(e=>e.id!==id);
+  scheduleSave();
+  renderAll();
+}
+
+function addCat(){
+  const v=document.getElementById('catInput').value.trim();
+  if(!v||categories.includes(v)) return;
+  categories.push(v);
+  document.getElementById('catInput').value='';
+  scheduleSave();
+  renderAll();
+}
+
+function removeCat(c){
+  if(categories.length<=1) return;
+  categories=categories.filter(x=>x!==c);
+  scheduleSave();
+  renderAll();
+}
+
+function exportData(){
+  const blob=new Blob([JSON.stringify({entries,categories},null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='tracker_backup_'+todayStr()+'.json';
+  a.click();
+}
+
+// ── PAGES ──────────────────────────────────────────────────────────
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.getElementById('page-'+id).classList.add('on');
+  document.querySelectorAll('.tab').forEach(t=>{
+    if(t.textContent.trim().toLowerCase()===id) t.classList.add('on');
+  });
+}
+
+// ── RENDER ─────────────────────────────────────────────────────────
+function renderCatSelect(){
+  const sel=document.getElementById('entryCat');
+  const cur=sel.value;
+  sel.innerHTML=categories.map(c=>`<option value="${c}"${c===cur?' selected':''}>${c}</option>`).join('');
+}
+
+function renderStats(){
+  const today=todayStr();
+  const total=entries.length;
+  const todayCount=entries.filter(e=>e.date===today).length;
+  const scores=entries.map(e=>e.score);
+  const avg=scores.length?(scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(1):'—';
+  let streak=0;
+  const d=new Date();
+  for(let i=0;i<365;i++){
+    const ds=d.toISOString().slice(0,10);
+    if(getDayScore(ds)!==null) streak++;
+    else if(i>0) break;
+    d.setDate(d.getDate()-1);
+  }
+  const r=document.getElementById('statsRow');
+  if(r) r.innerHTML=[
+    {n:total,l:'Total logged'},{n:todayCount,l:'Today'},
+    {n:avg,l:'Avg score'},{n:streak+'d',l:'Day streak'}
+  ].map(s=>`<div class="stat"><div class="sn">${s.n}</div><div class="sl2">${s.l}</div></div>`).join('');
+}
+
+function renderHeatmap(){
+  const year=new Date().getFullYear();
+  const start=new Date(year,0,1);
+  const sd=start.getDay();
+  const offset=sd===0?6:sd-1;
+  const weeks=[];
+  let week=new Array(offset).fill(null);
+  const d=new Date(year,0,1);
+  const end=new Date(year,11,31);
+  while(d<=end){
+    week.push(new Date(d));
+    if(week.length===7){weeks.push(week);week=[];}
+    d.setDate(d.getDate()+1);
+  }
+  if(week.length){while(week.length<7)week.push(null);weeks.push(week);}
+
+  const colsEl=document.getElementById('hmCols');
+  if(!colsEl) return;
+  colsEl.innerHTML='';
+  const tip=document.getElementById('tip');
+
+  weeks.forEach((w,wi)=>{
+    const col=document.createElement('div');
+    col.className='hm-col';
+    const firstReal=w.find(x=>x!==null);
+    const ml=document.createElement('div');
+    ml.className='hm-ml';
+    if(firstReal){
+      const prevFirst=wi>0?weeks[wi-1].find(x=>x!==null):null;
+      if(!prevFirst||prevFirst.getMonth()!==firstReal.getMonth())
+        ml.textContent=MONTHS[firstReal.getMonth()];
+    }
+    col.appendChild(ml);
+    w.forEach(day=>{
+      const cell=document.createElement('div');
+      cell.className='hm-cell';
+      if(!day){ cell.style.background='transparent'; cell.style.border='none'; }
+      else{
+        const ds=day.toISOString().slice(0,10);
+        const isFuture=day>new Date();
+        const sc=getDayScore(ds);
+        cell.style.background=isFuture?'transparent':(sc!==null?scoreColor(sc):'var(--surface2)');
+        if(isFuture) cell.style.border='none';
+        if(!isFuture){
+          const de=entries.filter(e=>e.date===ds);
+          cell.addEventListener('mouseenter',ev=>{
+            tip.style.display='block';
+            tip.style.left=(ev.clientX+12)+'px';
+            tip.style.top=(ev.clientY-40)+'px';
+            const label=day.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+            const scStr=sc!==null?sc.toFixed(1):'—';
+            tip.innerHTML=`<strong>${label}</strong><br>${de.length} entr${de.length!==1?'ies':'y'} · avg ${scStr}`;
+          });
+          cell.addEventListener('mousemove',ev=>{
+            tip.style.left=(ev.clientX+12)+'px';
+            tip.style.top=(ev.clientY-40)+'px';
+          });
+          cell.addEventListener('mouseleave',()=>{ tip.style.display='none'; });
+        }
+      }
+      col.appendChild(cell);
+    });
+    colsEl.appendChild(col);
+  });
+
+  const daysEl=document.getElementById('hmDays');
+  if(daysEl){
+    daysEl.innerHTML='';
+    const sp=document.createElement('div'); sp.style.height='16px';
+    daysEl.appendChild(sp);
+    ['M','','W','','F','','S'].forEach(l=>{
+      const d2=document.createElement('div');
+      d2.className='hm-dl'; d2.textContent=l;
+      daysEl.appendChild(d2);
+    });
+  }
+}
+
+function renderToday(){
+  const today=todayStr();
+  const h=document.getElementById('todayHeading');
+  if(h) h.textContent=new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
+  const list=document.getElementById('todayList');
+  if(!list) return;
+  const te=entries.filter(e=>e.date===today).sort((a,b)=>a.time.localeCompare(b.time));
+  if(!te.length){ list.innerHTML='<div class="empty">Nothing logged today yet.</div>'; return; }
+  list.innerHTML=te.map(e=>`
+    <div class="entry">
+      <div class="edot" style="background:${dotColor(e.score)};"></div>
+      <div class="ename">${e.text}</div>
+      <span class="ecat">${e.cat}</span>
+      <span class="etime">${e.time}</span>
+      <button class="edel" onclick="deleteEntry(${e.id})">&#215;</button>
+    </div>`).join('');
+}
+
+function renderYear(){
+  const year=new Date().getFullYear();
+  const ye=entries.filter(e=>e.date.startsWith(year));
+  const total=ye.length;
+  const scores=ye.map(e=>e.score);
+  const avg=scores.length?(scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(1):'—';
+  const highDays=[...new Set(ye.filter(e=>e.score>=4).map(e=>e.date))].length;
+  const loggedDays=[...new Set(ye.map(e=>e.date))].length;
+
+  const ys=document.getElementById('yearStats');
+  if(ys) ys.innerHTML=[
+    {n:total,l:'Entries this year'},{n:avg,l:'Average score'},
+    {n:loggedDays,l:'Days logged'},{n:highDays,l:'High score days'}
+  ].map(s=>`<div class="stat"><div class="sn">${s.n}</div><div class="sl2">${s.l}</div></div>`).join('');
+
+  const mg=document.getElementById('monthlyGrid');
+  if(mg) mg.innerHTML=MONTHS_FULL.map((name,mi)=>{
+    const me=ye.filter(e=>new Date(e.date).getMonth()===mi);
+    const mavg=me.length?me.reduce((s,e)=>s+e.score,0)/me.length:0;
+    const pct=Math.round(mavg/5*100);
+    return `<div class="month-card">
+      <div class="mc-name">${name}</div>
+      <div class="mc-bar-bg"><div class="mc-bar" style="width:${pct}%;background:${scoreColor(mavg||null)};"></div></div>
+      <div class="mc-num">${me.length} entr${me.length!==1?'ies':'y'}${mavg?' · '+mavg.toFixed(1)+'/5':''}</div>
+    </div>`;
+  }).join('');
+
+  const cb=document.getElementById('catBreakdown');
+  if(cb){
+    const catData=categories.map(cat=>{
+      const ce=ye.filter(e=>e.cat===cat);
+      const cavg=ce.length?ce.reduce((s,e)=>s+e.score,0)/ce.length:0;
+      return{cat,count:ce.length,avg:cavg};
+    }).filter(c=>c.count>0).sort((a,b)=>b.count-a.count);
+    if(!catData.length){cb.innerHTML='<div class="empty">No data yet.</div>';return;}
+    const maxCount=Math.max(...catData.map(c=>c.count));
+    cb.innerHTML=catData.map(c=>`
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <div style="width:90px;font-size:13px;color:var(--text2);flex-shrink:0;">${c.cat}</div>
+        <div style="flex:1;height:8px;background:var(--surface2);border-radius:4px;overflow:hidden;">
+          <div style="height:8px;width:${Math.round(c.count/maxCount*100)}%;background:${scoreColor(c.avg)};border-radius:4px;"></div>
+        </div>
+        <div style="font-size:12px;color:var(--text3);width:60px;text-align:right;">${c.count} · ${c.avg.toFixed(1)}/5</div>
+      </div>`).join('');
+  }
+}
+
+function renderSettings(){
+  const cl=document.getElementById('catList');
+  if(!cl) return;
+  cl.innerHTML=categories.map(c=>`
+    <div class="cat-tag">${c}
+      <button class="cat-del" onclick="removeCat('${c}')">&#215;</button>
+    </div>`).join('');
+}
+
+function renderAll(){
+  renderCatSelect();
+  renderStats();
+  renderHeatmap();
+  renderToday();
+  renderYear();
+  renderSettings();
+}
+
+// START
+checkSetup();
+</script>
+</body>
+</html>
