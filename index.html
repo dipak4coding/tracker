@@ -164,8 +164,9 @@ input[type=text]:focus,select:focus{border-color:var(--green);}
     <div class="setup-step">
       <div class="step-num">3</div>
       <div class="step-body">
-        <div class="step-label">Click Connect — we do the rest</div>
-        <div class="step-desc">We create a storage bin for you automatically and save the ID in this browser.</div>
+        <div class="step-label">Already set up on another device? (optional)</div>
+        <div class="step-desc">Paste your Bin ID below to share data across devices. Leave empty if this is your first device — a new bin is created automatically.<br><br>To find your Bin ID on the other device: open tracker → press F12 → Console tab → type <code style="font-size:11px;background:#f0ede6;padding:1px 5px;border-radius:3px;font-family:monospace;">localStorage.getItem('tb_bin')</code> → copy the result.</div>
+        <input class="setup-input" type="text" id="setupBin" placeholder="Bin ID (optional) — e.g. 64f3a1b2c3d4e5f6a7b8c9d0" />
       </div>
     </div>
 
@@ -301,19 +302,29 @@ function checkSetup() {
 
 async function setupConnect() {
   const key = document.getElementById('setupKey').value.trim();
+  const existingBin = document.getElementById('setupBin').value.trim();
   if (!key) { showErr('Please paste your Master Key first.'); return; }
   const btn = document.getElementById('setupBtn');
   btn.textContent = 'Connecting…'; btn.disabled = true;
   try {
-    const res = await fetch(BIN_URL, {
-      method: 'POST',
-      headers: {'Content-Type':'application/json','X-Master-Key':key,'X-Bin-Name':'DailyTracker'},
-      body: JSON.stringify({entries:[], categories:['Food','Exercise','Mood','Sleep','Work','Other']})
-    });
-    if (!res.ok) throw new Error('Bad key or network issue ('+res.status+')');
-    const data = await res.json();
-    masterKey = key;
-    binId = data.metadata.id;
+    if (existingBin) {
+      const res = await fetch(BIN_URL+'/'+existingBin+'/latest', {
+        headers:{'X-Master-Key':key}
+      });
+      if (!res.ok) throw new Error('Could not access that Bin ID ('+res.status+'). Check both the ID and key.');
+      masterKey = key;
+      binId = existingBin;
+    } else {
+      const res = await fetch(BIN_URL, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json','X-Master-Key':key,'X-Bin-Name':'DailyTracker'},
+        body: JSON.stringify({entries:[], categories:['Food','Exercise','Mood','Sleep','Work','Other']})
+      });
+      if (!res.ok) throw new Error('Bad key or network issue ('+res.status+')');
+      const data = await res.json();
+      masterKey = key;
+      binId = data.metadata.id;
+    }
     localStorage.setItem('tb_key', masterKey);
     localStorage.setItem('tb_bin', binId);
     document.getElementById('setupOverlay').style.display = 'none';
@@ -393,7 +404,7 @@ async function initApp() {
   document.getElementById('entryTime').value = nowTime();
   await syncFromCloud();
   // Re-sync every 60s in case another device made changes
-  setInterval(syncFromCloud, 60000);
+  setInterval(syncFromCloud, 600000);
 }
 
 // ── HELPERS ────────────────────────────────────────────────────────
